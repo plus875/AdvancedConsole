@@ -4,7 +4,8 @@ using UnityEditor;
 using UnityEditor.IMGUI.Controls;
 using UnityEngine;
 
-public class ConsoleTree : TreeView {
+public class ConsoleTree : TreeView
+{
     private readonly TreeViewItem _rootTreeItem = new TreeViewItem(0, -1, "root");
     private int _id = 3;
     protected override TreeViewItem BuildRoot()
@@ -21,6 +22,7 @@ public class ConsoleTree : TreeView {
     {
         TreeViewItem test1 = new TreeViewItem(1, 0, "child1");
         _rootTreeItem.AddChild(test1);
+        
         TreeViewItem test2 = new TreeViewItem(2, 0, "child2");
         _rootTreeItem.AddChild(test2);
         TreeViewItem test3 = new TreeViewItem(3, 1, "child3");
@@ -44,7 +46,8 @@ public class ConsoleTree : TreeView {
     public void AddLogTreeItem(LogEntry entry)
     {
         _id++;
-        TreeViewItem item = new TreeViewItem(_id, 0, entry.output);
+        ConsoleTreeItem item = new ConsoleTreeItem(_id, 0, entry.Output);
+        item.icon = entry.Icon;
         _rootTreeItem.AddChild(item);
     }
 
@@ -58,4 +61,10 @@ public class ConsoleTree : TreeView {
             Selection.activeObject = o;
         }
     }
+
+    protected override void SelectionChanged(IList<int> selectedIds)
+    {
+        //todo redraw
+    }
+
 }

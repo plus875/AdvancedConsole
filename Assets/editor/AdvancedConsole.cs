@@ -15,6 +15,11 @@ public class AdvancedConsole : EditorWindow
         EditorWindow.GetWindow<AdvancedConsole>();
     }
 
+
+    public static Texture2D Log;
+    public static Texture2D Warn;
+    public static Texture2D Error;
+
     private static readonly List<LogEntry> _entries = new List<LogEntry>();
     private TreeViewState _treeViewState = new TreeViewState();
     private ConsoleTree _consoleTree;
@@ -22,10 +27,10 @@ public class AdvancedConsole : EditorWindow
     private Vector2 _position;
     private int _id;
 
-    //public AdvancedConsole()
-    //{
-    //    Debug.LogError("AdvancedConsole construct:" + _entries.Count);
-    //}
+    public AdvancedConsole()
+    {
+        //Debug.LogError("AdvancedConsole construct:" + _entries.Count);
+    }
 
     ~AdvancedConsole()
     {
@@ -41,7 +46,7 @@ public class AdvancedConsole : EditorWindow
 
         if (_entries.Count > 0)
         {
-            var bytes = Encoding.UTF8.GetBytes(_entries[0].content);
+            var bytes = Encoding.UTF8.GetBytes(_entries[0].Content);
             file.Write(bytes, 0, bytes.Length);
             file.Flush();
             file.Close();
@@ -56,6 +61,10 @@ public class AdvancedConsole : EditorWindow
         if (_consoleTree == null)
         {
             _consoleTree = new ConsoleTree(_treeViewState);
+
+            Log = EditorGUIUtility.Load("log.png") as Texture2D;
+            Warn = EditorGUIUtility.Load("warn.png") as Texture2D;
+            Error = EditorGUIUtility.Load("error.png") as Texture2D;
         }
     }
 
@@ -68,12 +77,12 @@ public class AdvancedConsole : EditorWindow
     void OnGUI()
     {
         _position = EditorGUILayout.BeginScrollView(_position, GUILayout.Width(position.width), GUILayout.Height(300));
-        //EditorGUILayout.LabelField(_logEntry.content, GUILayout.Height(800));
+        //EditorGUILayout.LabelField(_logEntry.Content, GUILayout.Height(800));
         for (var i = 0; i < _entries.Count; i++)
         {
             //EditorGUILayout.BeginHorizontal();
             //EditorGUILayout.BeginVertical();
-            EditorGUILayout.LabelField(_entries[i].content, GUILayout.Height(80), GUILayout.Width(position.width - 30));
+            EditorGUILayout.LabelField(_entries[i].Content, GUILayout.Height(80), GUILayout.Width(position.width - 30));
             EditorGUILayout.Space();
             //EditorGUILayout.EndHorizontal();
             //EditorGUILayout.EndVertical();
@@ -87,18 +96,17 @@ public class AdvancedConsole : EditorWindow
         _consoleTree.OnGUI(new Rect(0, 400, position.width, 100));
         _consoleTree.Reload();
 
+        EditorGUILayout.LabelField("dddddddd\ndasfdasfds");
         EditorGUILayout.TextArea("2222222222222");
-
-
     }
 
     private void OnLogging(string condition, string stackTrace, LogType type)
     {
-        //_logEntry.content += "id:" + _id + " " + stackTrace;
         LogEntry entry = new LogEntry
         {
-            output = condition,
-            stackTrace = stackTrace
+            Output = condition,
+            StackTrace = stackTrace,
+            LogType = type,
         };
         _consoleTree.AddLogTreeItem(entry);
         _entries.Add(entry);
@@ -107,10 +115,28 @@ public class AdvancedConsole : EditorWindow
 
 public class LogEntry
 {
-    public string output;
-    public string stackTrace;
+    public LogType LogType;
+    public string Output;
+    public string StackTrace;
 
-    public string content {
-        get { return output + "\n" + stackTrace; }
+    public string Content {
+        get { return Output + "\n" + StackTrace; }
+    }
+
+    public Texture2D Icon
+    {
+        get
+        {
+            switch (LogType)
+            {
+                case LogType.Error:
+                    return AdvancedConsole.Error;
+                case LogType.Warning:
+                    return AdvancedConsole.Warn;
+                default:
+                    return AdvancedConsole.Log;
+            }
+        }
+       
     }
 }
