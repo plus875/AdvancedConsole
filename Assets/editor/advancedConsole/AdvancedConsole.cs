@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using UnityEditor;
@@ -12,9 +10,8 @@ public class AdvancedConsole : EditorWindow
     [MenuItem("Window/Open AdvancedConsole")]
     public static void OpenWindow()
     {
-        EditorWindow.GetWindow<AdvancedConsole>();
+        EditorWindow.GetWindowWithRect<AdvancedConsole>(ViewRect);
     }
-
 
     public static Texture2D Log;
     public static Texture2D Warn;
@@ -24,8 +21,17 @@ public class AdvancedConsole : EditorWindow
     private TreeViewState _treeViewState = new TreeViewState();
     private ConsoleTree _consoleTree;
 
-    private Vector2 _position;
+    private TreeViewState _stackTreeViewState = new TreeViewState();
+    private StackTrackTree _stackTree;
+
+    public static Rect ViewRect = new Rect(200, 300, 1100, 600);
+    private Vector2 _ViewRect;
     private int _id;
+    private Rect _splitterRect;
+    private float verticalSplitterPercent;
+    private float topTreeHeight;
+    private float bottomTreeHeight;
+    private bool m_ResizingVerticalSplitterLeft;
 
     public AdvancedConsole()
     {
@@ -53,6 +59,7 @@ public class AdvancedConsole : EditorWindow
         }
     }
 
+    // ReSharper disable once UnusedMember.Local
     void OnEnable()
     {
         Application.logMessageReceivedThreaded += OnLogging;
@@ -60,12 +67,19 @@ public class AdvancedConsole : EditorWindow
 
         if (_consoleTree == null)
         {
-            _consoleTree = new ConsoleTree(_treeViewState);
+            _consoleTree = new ConsoleTree(_treeViewState, true, 22f);
+            _consoleTree.OnSelectionChanged += OnSelecLogChanged;
+            _stackTree = new StackTrackTree(_stackTreeViewState, false, 18f);
 
             Log = EditorGUIUtility.Load("log.png") as Texture2D;
             Warn = EditorGUIUtility.Load("warn.png") as Texture2D;
             Error = EditorGUIUtility.Load("error.png") as Texture2D;
         }
+
+        topTreeHeight = ViewRect.height * 0.5f;
+        verticalSplitterPercent = topTreeHeight / ViewRect.height;
+        _splitterRect = new Rect(0, ViewRect.height * verticalSplitterPercent, ViewRect.width, 3);
+        bottomTreeHeight = ViewRect.height - topTreeHeight - _splitterRect.height;
     }
 
     void OnDisable()
@@ -74,30 +88,44 @@ public class AdvancedConsole : EditorWindow
         WriteFile();
     }
 
+    // ReSharper disable once UnusedMember.Local
     void OnGUI()
     {
-        _position = EditorGUILayout.BeginScrollView(_position, GUILayout.Width(position.width), GUILayout.Height(300));
-        //EditorGUILayout.LabelField(_logEntry.Content, GUILayout.Height(800));
-        for (var i = 0; i < _entries.Count; i++)
+        ViewRect = position;
+
+        EditorGUILayout.BeginVertical();
+        EditorGUILayout.Space();
+        EditorGUILayout.EndVertical();
+
+        HandleVerticalResize();
+
+        _consoleTree.OnGUI(new Rect(0, 0, ViewRect.width, topTreeHeight));
+
+        _stackTree.OnGUI(new Rect(0, topTreeHeight + _splitterRect.height, ViewRect.width, bottomTreeHeight));
+    }
+
+
+    private void HandleVerticalResize()
+    {
+        _splitterRect.y = (int)(ViewRect.height * verticalSplitterPercent);
+
+        EditorGUIUtility.AddCursorRect(_splitterRect, MouseCursor.ResizeVertical);
+        if (Event.current.type == EventType.MouseDown && _splitterRect.Contains(Event.current.mousePosition))
+            m_ResizingVerticalSplitterLeft = true;
+
+        if (m_ResizingVerticalSplitterLeft)
         {
-            //EditorGUILayout.BeginHorizontal();
-            //EditorGUILayout.BeginVertical();
-            EditorGUILayout.LabelField(_entries[i].Content, GUILayout.Height(80), GUILayout.Width(position.width - 30));
-            EditorGUILayout.Space();
-            //EditorGUILayout.EndHorizontal();
-            //EditorGUILayout.EndVertical();
+            verticalSplitterPercent = Mathf.Clamp(Event.current.mousePosition.y / ViewRect.height, 0.25f, 0.98f);
+            _splitterRect.y = (int)(ViewRect.height * verticalSplitterPercent);
+            topTreeHeight = _splitterRect.y;
+            bottomTreeHeight = ViewRect.height - topTreeHeight - _splitterRect.height;
         }
-        EditorGUILayout.EndScrollView();
 
-        EditorGUILayout.Separator();
 
-        EditorGUILayout.TextArea("1111111111111");
-
-        _consoleTree.OnGUI(new Rect(0, 400, position.width, 100));
-        _consoleTree.Reload();
-
-        EditorGUILayout.LabelField("dddddddd\ndasfdasfds");
-        EditorGUILayout.TextArea("2222222222222");
+        if (Event.current.type == EventType.MouseUp)
+        {
+            m_ResizingVerticalSplitterLeft = false;
+        }
     }
 
     private void OnLogging(string condition, string stackTrace, LogType type)
@@ -111,32 +139,13 @@ public class AdvancedConsole : EditorWindow
         _consoleTree.AddLogTreeItem(entry);
         _entries.Add(entry);
     }
-}
 
-public class LogEntry
-{
-    public LogType LogType;
-    public string Output;
-    public string StackTrace;
-
-    public string Content {
-        get { return Output + "\n" + StackTrace; }
-    }
-
-    public Texture2D Icon
+    private void OnSelecLogChanged(LogEntry logEntry)
     {
-        get
-        {
-            switch (LogType)
-            {
-                case LogType.Error:
-                    return AdvancedConsole.Error;
-                case LogType.Warning:
-                    return AdvancedConsole.Warn;
-                default:
-                    return AdvancedConsole.Log;
-            }
-        }
-       
+        if (logEntry == null)
+            _stackTree.ClearStackTrack();
+        else
+            _stackTree.SetStackTrack(logEntry);
     }
+
 }

@@ -1,11 +1,12 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEditor;
 using UnityEditor.IMGUI.Controls;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 public class ConsoleTree : TreeView
 {
+    public event System.Action<LogEntry> OnSelectionChanged;
     private readonly TreeViewItem _rootTreeItem = new TreeViewItem(0, -1, "root");
     private int _id = 3;
     protected override TreeViewItem BuildRoot()
@@ -13,25 +14,20 @@ public class ConsoleTree : TreeView
         return _rootTreeItem;
     }
 
-    //protected override IList<TreeViewItem> BuildRows(TreeViewItem root)
-    //{
-    //    return null;
-    //}
-
-    public ConsoleTree(TreeViewState state) : base(state)
+    public ConsoleTree(TreeViewState state, bool showBgColor, float itemHeight) : base(state)
     {
-        TreeViewItem test1 = new TreeViewItem(1, 0, "child1");
+        showBorder = true;
+        showAlternatingRowBackgrounds = showBgColor;
+        rowHeight = itemHeight;
+
+        ConsoleTreeItem test1 = new ConsoleTreeItem(1, 0, "child1");
         _rootTreeItem.AddChild(test1);
-        
-        TreeViewItem test2 = new TreeViewItem(2, 0, "child2");
+
+        ConsoleTreeItem test2 = new ConsoleTreeItem(2, 0, "child2");
         _rootTreeItem.AddChild(test2);
-        TreeViewItem test3 = new TreeViewItem(3, 1, "child3");
+        ConsoleTreeItem test3 = new ConsoleTreeItem(3, 1, "child3");
         _rootTreeItem.AddChild(test3);
         Reload();
-    }
-
-    public ConsoleTree(TreeViewState state, MultiColumnHeader multiColumnHeader) : base(state, multiColumnHeader)
-    {
     }
 
     public override void OnGUI(Rect rect)
@@ -39,16 +35,18 @@ public class ConsoleTree : TreeView
         base.OnGUI(rect);
         if (Event.current.type == EventType.MouseDown && Event.current.button == 0 && rect.Contains(Event.current.mousePosition))
         {
-            SetSelection(new int[1], TreeViewSelectionOptions.FireSelectionChanged);
+            SetSelection(new int[0], TreeViewSelectionOptions.FireSelectionChanged);
         }
     }
 
     public void AddLogTreeItem(LogEntry entry)
     {
         _id++;
-        ConsoleTreeItem item = new ConsoleTreeItem(_id, 0, entry.Output);
+        ConsoleTreeItem item = new ConsoleTreeItem(_id, 0, entry);
         item.icon = entry.Icon;
         _rootTreeItem.AddChild(item);
+
+        Reload();
     }
 
     protected override void DoubleClickedItem(int id)
@@ -64,7 +62,19 @@ public class ConsoleTree : TreeView
 
     protected override void SelectionChanged(IList<int> selectedIds)
     {
-        //todo redraw
+        if(selectedIds == null || selectedIds.Count <= 0) return;
+
+        var assetItem = FindItem(selectedIds[0], rootItem) as ConsoleTreeItem;
+        if (assetItem != null)
+        {
+            if (OnSelectionChanged != null)
+            {
+                if (selectedIds.Count > 1)
+                    OnSelectionChanged(null);
+                else
+                    OnSelectionChanged(assetItem.LogEntry);
+            }
+        }
     }
 
 }
