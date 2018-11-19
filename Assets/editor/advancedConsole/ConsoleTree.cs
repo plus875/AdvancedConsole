@@ -85,4 +85,9 @@ public class ConsoleTree : TreeView
         }
     }
 
+    public void Clear()
+    {
+        rootItem.children.Clear();
+        Reload();
+    }
 }
