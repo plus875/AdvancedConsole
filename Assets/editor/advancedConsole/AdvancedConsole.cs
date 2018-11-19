@@ -10,7 +10,7 @@ public class AdvancedConsole : EditorWindow
     [MenuItem("Window/Open AdvancedConsole")]
     public static void OpenWindow()
     {
-        EditorWindow.GetWindowWithRect<AdvancedConsole>(ViewRect);
+        EditorWindow.GetWindow<AdvancedConsole>();
     }
 
     public static Texture2D Log;
@@ -23,15 +23,15 @@ public class AdvancedConsole : EditorWindow
 
     private TreeViewState _stackTreeViewState = new TreeViewState();
     private StackTrackTree _stackTree;
-
-    public static Rect ViewRect = new Rect(200, 300, 1100, 600);
+    
     private Vector2 _ViewRect;
     private int _id;
     private Rect _splitterRect;
-    private float verticalSplitterPercent;
+    private float verticalSplitterPercent = 0.6f;
     private float topTreeHeight;
     private float bottomTreeHeight;
     private bool m_ResizingVerticalSplitterLeft;
+    private Rect viewRect;
 
     public AdvancedConsole()
     {
@@ -76,10 +76,10 @@ public class AdvancedConsole : EditorWindow
             Error = EditorGUIUtility.Load("error.png") as Texture2D;
         }
 
-        topTreeHeight = ViewRect.height * 0.5f;
-        verticalSplitterPercent = topTreeHeight / ViewRect.height;
-        _splitterRect = new Rect(0, ViewRect.height * verticalSplitterPercent, ViewRect.width, 3);
-        bottomTreeHeight = ViewRect.height - topTreeHeight - _splitterRect.height;
+        viewRect = position;
+        topTreeHeight = viewRect.height * verticalSplitterPercent;
+        _splitterRect = new Rect(0, viewRect.height * verticalSplitterPercent, viewRect.width, 3);
+        bottomTreeHeight = viewRect.height - topTreeHeight - _splitterRect.height;
     }
 
     void OnDisable()
@@ -91,7 +91,7 @@ public class AdvancedConsole : EditorWindow
     // ReSharper disable once UnusedMember.Local
     void OnGUI()
     {
-        ViewRect = position;
+        viewRect = position;
 
         EditorGUILayout.BeginVertical();
         EditorGUILayout.Space();
@@ -99,15 +99,18 @@ public class AdvancedConsole : EditorWindow
 
         HandleVerticalResize();
 
-        _consoleTree.OnGUI(new Rect(0, 0, ViewRect.width, topTreeHeight));
+        _consoleTree.OnGUI(new Rect(0, 0, viewRect.width, topTreeHeight));
 
-        _stackTree.OnGUI(new Rect(0, topTreeHeight + _splitterRect.height, ViewRect.width, bottomTreeHeight));
+        _stackTree.OnGUI(new Rect(0, topTreeHeight + _splitterRect.height, viewRect.width, bottomTreeHeight));
+
+        if(m_ResizingVerticalSplitterLeft)
+            Repaint();
     }
 
 
     private void HandleVerticalResize()
     {
-        _splitterRect.y = (int)(ViewRect.height * verticalSplitterPercent);
+        _splitterRect.y = (int)(viewRect.height * verticalSplitterPercent);
 
         EditorGUIUtility.AddCursorRect(_splitterRect, MouseCursor.ResizeVertical);
         if (Event.current.type == EventType.MouseDown && _splitterRect.Contains(Event.current.mousePosition))
@@ -115,13 +118,14 @@ public class AdvancedConsole : EditorWindow
 
         if (m_ResizingVerticalSplitterLeft)
         {
-            verticalSplitterPercent = Mathf.Clamp(Event.current.mousePosition.y / ViewRect.height, 0.25f, 0.98f);
-            _splitterRect.y = (int)(ViewRect.height * verticalSplitterPercent);
-            topTreeHeight = _splitterRect.y;
-            bottomTreeHeight = ViewRect.height - topTreeHeight - _splitterRect.height;
+            verticalSplitterPercent = Mathf.Clamp(Event.current.mousePosition.y / viewRect.height, 0.25f, 0.92f);
+            _splitterRect.y = (int)(viewRect.height * verticalSplitterPercent);
         }
 
+        topTreeHeight = _splitterRect.y;
+        bottomTreeHeight = viewRect.height - topTreeHeight - _splitterRect.height;
 
+        //check control size finish
         if (Event.current.type == EventType.MouseUp)
         {
             m_ResizingVerticalSplitterLeft = false;
