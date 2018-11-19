@@ -47,6 +47,14 @@ public class ConsoleTree : TreeView
         _rootTreeItem.AddChild(item);
 
         Reload();
+        ScrollToLatest();
+    }
+
+    private void ScrollToLatest()
+    {
+        var scorllPos = state.scrollPos;
+        scorllPos.y = Mathf.Max(0, GetRows().Count * rowHeight - treeViewRect.height / rowHeight);
+        state.scrollPos = scorllPos;
     }
 
     protected override void DoubleClickedItem(int id)
