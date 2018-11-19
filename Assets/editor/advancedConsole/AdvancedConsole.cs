@@ -19,7 +19,7 @@ public class AdvancedConsole : EditorWindow
 
     private static readonly List<LogEntry> _entries = new List<LogEntry>();
     private TreeViewState _treeViewState = new TreeViewState();
-    private ConsoleTree _consoleTree;
+    private ConsoleLogTree _consoleLogTree;
 
     private TreeViewState _stackTreeViewState = new TreeViewState();
     private StackTrackTree _stackTree;
@@ -72,14 +72,14 @@ public class AdvancedConsole : EditorWindow
         Application.logMessageReceivedThreaded += OnLogging;
         //Application.logMessageReceived += OnLogging;
 
-        if (_consoleTree == null)
+        if (_consoleLogTree == null)
         {
             Log = EditorGUIUtility.Load("log.png") as Texture2D;
             Warn = EditorGUIUtility.Load("warn.png") as Texture2D;
             Error = EditorGUIUtility.Load("error.png") as Texture2D;
 
-            _consoleTree = new ConsoleTree(_treeViewState, true, 22f);
-            _consoleTree.OnSelectionChanged += OnSelecLogChanged;
+            _consoleLogTree = new ConsoleLogTree(_treeViewState, true, 22f);
+            _consoleLogTree.OnSelectionChanged += OnSelecLogChanged;
             _stackTree = new StackTrackTree(_stackTreeViewState, false, 18f);
 
             _searchField = new SearchField();
@@ -134,7 +134,7 @@ public class AdvancedConsole : EditorWindow
 
         GUILayout.EndHorizontal();
 
-        _consoleTree.OnGUI(new Rect(0, pading * 2 + searchBarHeight, viewRect.width, topTreeHeight - pading - searchBarHeight));
+        _consoleLogTree.OnGUI(new Rect(0, pading * 2 + searchBarHeight, viewRect.width, topTreeHeight - pading - searchBarHeight));
 
         _stackTree.OnGUI(new Rect(0, topTreeHeight + _splitterRect.height, viewRect.width, bottomTreeHeight));
 
@@ -142,7 +142,7 @@ public class AdvancedConsole : EditorWindow
         _searchString =_searchField.OnGUI(
                 new Rect(viewRect.width - searchWidth, pading, searchWidth - 5f, searchBarHeight),
                 _searchString);
-        _consoleTree.searchString = _searchString;
+        _consoleLogTree.searchString = _searchString;
 
         if (m_ResizingVerticalSplitterLeft || _dirty)
         {
@@ -179,7 +179,7 @@ public class AdvancedConsole : EditorWindow
     {
         _dirty = true;
         _entries.Clear();
-        _consoleTree.Clear();
+        _consoleLogTree.Clear();
         _stackTree.ClearStackTrack();
     }
 
@@ -191,7 +191,7 @@ public class AdvancedConsole : EditorWindow
             StackTrace = stackTrace,
             LogType = type,
         };
-        _consoleTree.AddLogTreeItem(entry);
+        _consoleLogTree.AddLogTreeItem(entry);
         _entries.Add(entry);
     }
 

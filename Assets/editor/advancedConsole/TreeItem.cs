@@ -3,7 +3,7 @@ using UnityEditor.IMGUI.Controls;
 using UnityEditorInternal;
 using UnityEngine;
 
-public sealed class ConsoleTreeItem : TreeViewItem
+public sealed class ConsoleLogTreeItem : TreeViewItem
 {
     public string fullAssetName;
 
@@ -13,11 +13,11 @@ public sealed class ConsoleTreeItem : TreeViewItem
         private set;
     }
 
-    public ConsoleTreeItem(int id, int depth, string displayName) : base(id, depth, displayName)
+    public ConsoleLogTreeItem(int id, int depth, string displayName) : base(id, depth, displayName)
     {
     }
 
-    public ConsoleTreeItem(int id, int depth, LogEntry logEntry) : base(id, depth)
+    public ConsoleLogTreeItem(int id, int depth, LogEntry logEntry) : base(id, depth)
     {
         LogEntry = logEntry;
         displayName = logEntry.Output;
@@ -34,7 +34,6 @@ public sealed class StackTrackItem : TreeViewItem
 
     public StackTrackItem(int id, int depth, string displayName) : base(id, depth, displayName)
     {
-
     }
 
     public void OnDoubleClick()

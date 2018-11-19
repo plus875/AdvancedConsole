@@ -4,7 +4,7 @@ using UnityEditor.IMGUI.Controls;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-public class ConsoleTree : TreeView
+public class ConsoleLogTree : TreeView
 {
     public event System.Action<LogEntry> OnSelectionChanged;
     private readonly TreeViewItem _rootTreeItem = new TreeViewItem(0, -1, "root");
@@ -14,18 +14,18 @@ public class ConsoleTree : TreeView
         return _rootTreeItem;
     }
 
-    public ConsoleTree(TreeViewState state, bool showBgColor, float itemHeight) : base(state)
+    public ConsoleLogTree(TreeViewState state, bool showBgColor, float itemHeight) : base(state)
     {
         showBorder = true;
         showAlternatingRowBackgrounds = showBgColor;
         rowHeight = itemHeight;
 
-        ConsoleTreeItem test1 = new ConsoleTreeItem(1, 0, "child1");
+        ConsoleLogTreeItem test1 = new ConsoleLogTreeItem(1, 0, "child1");
         _rootTreeItem.AddChild(test1);
 
-        ConsoleTreeItem test2 = new ConsoleTreeItem(2, 0, "child2");
+        ConsoleLogTreeItem test2 = new ConsoleLogTreeItem(2, 0, "child2");
         _rootTreeItem.AddChild(test2);
-        ConsoleTreeItem test3 = new ConsoleTreeItem(3, 1, "child3");
+        ConsoleLogTreeItem test3 = new ConsoleLogTreeItem(3, 1, "child3");
         _rootTreeItem.AddChild(test3);
         Reload();
     }
@@ -42,7 +42,7 @@ public class ConsoleTree : TreeView
     public void AddLogTreeItem(LogEntry entry)
     {
         _id++;
-        ConsoleTreeItem item = new ConsoleTreeItem(_id, 0, entry);
+        ConsoleLogTreeItem item = new ConsoleLogTreeItem(_id, 0, entry);
         item.icon = entry.Icon;
         _rootTreeItem.AddChild(item);
 
@@ -59,7 +59,7 @@ public class ConsoleTree : TreeView
 
     protected override void DoubleClickedItem(int id)
     {
-        var assetItem = FindItem(id, rootItem) as ConsoleTreeItem;
+        var assetItem = FindItem(id, rootItem) as ConsoleLogTreeItem;
         if (assetItem != null)
         {
             Object o = AssetDatabase.LoadAssetAtPath<Object>(assetItem.fullAssetName);
@@ -72,7 +72,7 @@ public class ConsoleTree : TreeView
     {
         if(selectedIds == null || selectedIds.Count <= 0) return;
 
-        var assetItem = FindItem(selectedIds[0], rootItem) as ConsoleTreeItem;
+        var assetItem = FindItem(selectedIds[0], rootItem) as ConsoleLogTreeItem;
         if (assetItem != null)
         {
             if (OnSelectionChanged != null)
