@@ -39,24 +39,6 @@ public class ConsoleLogTree : TreeView
         }
     }
 
-    public void AddLogTreeItem(LogEntry entry)
-    {
-        _id++;
-        ConsoleLogTreeItem item = new ConsoleLogTreeItem(_id, 0, entry);
-        item.icon = entry.Icon;
-        _rootTreeItem.AddChild(item);
-
-        Reload();
-        ScrollToLatest();
-    }
-
-    private void ScrollToLatest()
-    {
-        var scorllPos = state.scrollPos;
-        scorllPos.y = Mathf.Max(0, GetRows().Count * rowHeight - treeViewRect.height / rowHeight);
-        state.scrollPos = scorllPos;
-    }
-
     protected override void DoubleClickedItem(int id)
     {
         var assetItem = FindItem(id, rootItem) as ConsoleLogTreeItem;
@@ -83,6 +65,33 @@ public class ConsoleLogTree : TreeView
                     OnSelectionChanged(assetItem.LogEntry);
             }
         }
+    }
+
+    public void AddLogTreeItem(LogEntry entry)
+    {
+        AddLogData(entry);
+        EndAddAllLogData();
+    }
+
+    public void AddLogData(LogEntry entry)
+    {
+        _id++;
+        ConsoleLogTreeItem item = new ConsoleLogTreeItem(_id, 0, entry);
+        item.icon = entry.Icon;
+        _rootTreeItem.AddChild(item);
+    }
+
+    public void EndAddAllLogData()
+    {
+        Reload();
+        ScrollToLatest();
+    }
+
+    public void ScrollToLatest()
+    {
+        var scorllPos = state.scrollPos;
+        scorllPos.y = Mathf.Max(0, GetRows().Count * rowHeight - treeViewRect.height / rowHeight);
+        state.scrollPos = scorllPos;
     }
 
     public void Clear()

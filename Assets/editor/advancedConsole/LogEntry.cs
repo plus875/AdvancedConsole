@@ -2,13 +2,17 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class LogEntry
+public class LogEntry : ScriptableObject
 {
+    [SerializeField]
     public LogType LogType;
+    [SerializeField]
     public string Output;
+    [SerializeField]
     public string StackTrace;
 
-    public string Content {
+    public string Content
+    {
         get { return Output + "\n" + StackTrace; }
     }
 
@@ -26,16 +30,14 @@ public class LogEntry
                     return AdvancedConsole.Log;
             }
         }
-       
     }
 
-    private List<string> _stackList;
-
+    private List<string> _stackList { get; set; }
     public List<string> GetStackTrack()
     {
         if (_stackList == null)
         {
-            _stackList = new List<string>(10);
+            _stackList = new List<string>(5);
             _stackList.Add(Output);
 
             int lineIndex = 0;

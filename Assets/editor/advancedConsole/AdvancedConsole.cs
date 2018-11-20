@@ -17,7 +17,8 @@ public class AdvancedConsole : EditorWindow
     public static Texture2D Warn;
     public static Texture2D Error;
 
-    private static readonly List<LogEntry> _entries = new List<LogEntry>();
+    private List<LogEntry> _entries = new List<LogEntry>();
+    private List<LogEntry> _showingEntries = new List<LogEntry>();
     private TreeViewState _treeViewState = new TreeViewState();
     private ConsoleLogTree _consoleLogTree;
 
@@ -25,7 +26,6 @@ public class AdvancedConsole : EditorWindow
     private StackTrackTree _stackTree;
 
     private SearchField _searchField;
-
 
     private const int pading = 2;
     private bool _dirty;
@@ -35,20 +35,17 @@ public class AdvancedConsole : EditorWindow
     private float verticalSplitterPercent = 0.6f;
     private float topTreeHeight;
     private float bottomTreeHeight;
-    private bool m_ResizingVerticalSplitterLeft;
+    private bool _resizingVerticalSplitter;
     private Rect viewRect;
     private float searchBarHeight = 16f;
-    private GUIStyle _btnStyle;
 
-    public AdvancedConsole()
-    {
-        //Debug.LogError("AdvancedConsole construct:" + _entries.Count);
-    }
+    private bool _showLog;
+    private bool _showWarnings;
+    private bool _showErrors;
 
-    ~AdvancedConsole()
-    {
-        Debug.LogError("destroy AdvancedConsole:" + _entries.Count);
-    }
+    private int _logCount;
+    private int _warnCount;
+    private int _errorCount;
 
     private void WriteFile()
     {
@@ -70,7 +67,6 @@ public class AdvancedConsole : EditorWindow
     void OnEnable()
     {
         Application.logMessageReceivedThreaded += OnLogging;
-        //Application.logMessageReceived += OnLogging;
 
         if (_consoleLogTree == null)
         {
@@ -83,12 +79,6 @@ public class AdvancedConsole : EditorWindow
             _stackTree = new StackTrackTree(_stackTreeViewState, false, 18f);
 
             _searchField = new SearchField();
-
-            _btnStyle = new GUIStyle();
-            _btnStyle.alignment = TextAnchor.MiddleCenter;
-            var pressState = new GUIStyleState();
-            pressState.background = Log;
-            _btnStyle.onActive = pressState;
         }
 
         viewRect = position;
@@ -96,12 +86,16 @@ public class AdvancedConsole : EditorWindow
         topTreeHeight = viewRect.height * verticalSplitterPercent - startY;
         _splitterRect = new Rect(0, viewRect.height * verticalSplitterPercent, viewRect.width, 5);
         bottomTreeHeight = viewRect.height - topTreeHeight - _splitterRect.height;
+
+        RefreshShowingEntry();
     }
 
     void OnDisable()
     {
-        Debug.LogError("OnDisable:" + _entries.Count);
-        WriteFile();
+        Application.logMessageReceivedThreaded -= OnLogging;
+
+        //Debug.LogError("OnDisable:" + _entries.Count);
+        //WriteFile();
     }
 
     // ReSharper disable once UnusedMember.Local
@@ -109,42 +103,49 @@ public class AdvancedConsole : EditorWindow
     {
         viewRect = position;
 
-        EditorGUILayout.BeginVertical();
-        EditorGUILayout.Space();
-        EditorGUILayout.EndVertical();
+        GUILayout.BeginVertical();
+        GUILayout.Space(pading);
+        GUILayout.EndVertical();
 
         HandleVerticalResize();
 
-        if (GUI.Button(new Rect(10, 2, 50, searchBarHeight), "Clear", EditorStyles.toolbarButton))
+        if (GUI.Button(new Rect(10, pading, 50, searchBarHeight), "Clear", EditorStyles.toolbarButton))
             ClearLog();
 
+        //toolbar
         GUILayout.BeginHorizontal();
-
         GUILayout.Space(5);
-
         //collapse = GUILayout.Toggle(collapse, new GUIContent("Collapse"), EditorStyles.toolbarButton, GUILayout.Width(50));
         //clearOnPlay = GUILayout.Toggle(clearOnPlay, new GUIContent("Clear On Play"), EditorStyles.toolbarButton, GUILayout.Width(70));
         //errorPause = GUILayout.Toggle(errorPause, new GUIContent("Error Pause"), EditorStyles.toolbarButton, GUILayout.Width(60));
+        GUILayout.FlexibleSpace();
 
-        //GUILayout.FlexibleSpace();
+        bool showLog = _showLog; bool showWarning = _showWarnings; bool showError = _showErrors;
 
-        //showLog = GUILayout.Toggle(showLog, new GUIContent("L"), EditorStyles.toolbarButton, GUILayout.Width(30));
-        //showWarnings = GUILayout.Toggle(showWarnings, new GUIContent("W"), EditorStyles.toolbarButton, GUILayout.Width(30));
-        //showErrors = GUILayout.Toggle(showErrors, new GUIContent("E"), EditorStyles.toolbarButton, GUILayout.Width(30));
-
+        _showLog = GUILayout.Toggle(_showLog, new GUIContent(_logCount.ToString(), Log), EditorStyles.toolbarButton, GUILayout.MinWidth(30));
+        _showWarnings = GUILayout.Toggle(_showWarnings, new GUIContent(_warnCount.ToString(), Warn), EditorStyles.toolbarButton, GUILayout.MinWidth(30));
+        _showErrors = GUILayout.Toggle(_showErrors, new GUIContent(_errorCount.ToString(), Error), EditorStyles.toolbarButton, GUILayout.MinWidth(30));
         GUILayout.EndHorizontal();
 
+        //log tree
         _consoleLogTree.OnGUI(new Rect(0, pading * 2 + searchBarHeight, viewRect.width, topTreeHeight - pading - searchBarHeight));
 
+        //stackTrack tree
         _stackTree.OnGUI(new Rect(0, topTreeHeight + _splitterRect.height, viewRect.width, bottomTreeHeight));
 
+        //searchBar
         float searchWidth = Mathf.Max(100, viewRect.width * 0.3f);
         _searchString =_searchField.OnGUI(
-                new Rect(viewRect.width - searchWidth, pading, searchWidth - 5f, searchBarHeight),
+                new Rect(viewRect.width - searchWidth - CalcIconSize(), 1, searchWidth, searchBarHeight),
                 _searchString);
         _consoleLogTree.searchString = _searchString;
 
-        if (m_ResizingVerticalSplitterLeft || _dirty)
+        //check filter log
+        if(showLog != _showLog || showWarning != _showWarnings || showError != _showErrors)
+            RefreshShowingEntry();
+
+        //check divide panel
+        if (_resizingVerticalSplitter || _dirty)
         {
             _dirty = false;
             Repaint();
@@ -157,9 +158,9 @@ public class AdvancedConsole : EditorWindow
 
         EditorGUIUtility.AddCursorRect(_splitterRect, MouseCursor.ResizeVertical);
         if (Event.current.type == EventType.MouseDown && _splitterRect.Contains(Event.current.mousePosition))
-            m_ResizingVerticalSplitterLeft = true;
+            _resizingVerticalSplitter = true;
 
-        if (m_ResizingVerticalSplitterLeft)
+        if (_resizingVerticalSplitter)
         {
             verticalSplitterPercent = Mathf.Clamp(Event.current.mousePosition.y / viewRect.height, 0.25f, 0.92f);
             _splitterRect.y = (int)(viewRect.height * verticalSplitterPercent);
@@ -171,28 +172,90 @@ public class AdvancedConsole : EditorWindow
         //check control size finish
         if (Event.current.type == EventType.MouseUp)
         {
-            m_ResizingVerticalSplitterLeft = false;
+            _resizingVerticalSplitter = false;
         }
+    }
+
+    private float CalcIconSize()
+    {
+        float baseSize = 30 * 3;
+        const float charWidth = 6;
+        baseSize += _logCount.ToString().Length * charWidth + _warnCount.ToString().Length * charWidth +
+                    _errorCount.ToString().Length * charWidth;
+        return baseSize;
     }
 
     private void ClearLog()
     {
         _dirty = true;
         _entries.Clear();
-        _consoleLogTree.Clear();
+        RefreshShowingEntry();
         _stackTree.ClearStackTrack();
     }
 
     private void OnLogging(string condition, string stackTrace, LogType type)
     {
-        LogEntry entry = new LogEntry
-        {
-            Output = condition,
-            StackTrace = stackTrace,
-            LogType = type,
-        };
-        _consoleLogTree.AddLogTreeItem(entry);
+        LogEntry entry = CreateInstance<LogEntry>();
+        entry.Output = condition;
+        entry.StackTrace = stackTrace;
+        entry.LogType = type;
+
+        if(TryAddShowing(entry))
+            _consoleLogTree.AddLogTreeItem(entry);
         _entries.Add(entry);
+    }
+
+    private bool TryAddShowing(LogEntry entry)
+    {
+        if (entry.LogType == LogType.Log)
+        {
+            _logCount++;
+            if (_showLog)
+            {
+                _showingEntries.Add(entry);
+                return true;
+            }
+        }
+
+        if (entry.LogType == LogType.Warning)
+        {
+            _warnCount++;
+            if (_showWarnings)
+            {
+                _showingEntries.Add(entry);
+                return true;
+            }
+        }
+
+        if (entry.LogType == LogType.Error)
+        {
+            _errorCount++;
+            if (_showErrors)
+            {
+                _showingEntries.Add(entry);
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    private void RefreshShowingEntry()
+    {
+        _showingEntries.Clear();
+        _logCount = 0;
+        _warnCount = 0;
+        _errorCount = 0;
+
+        _consoleLogTree.Clear();
+        for (var i = 0; i < _entries.Count; i++)
+        {
+            var entry = _entries[i];
+            bool beShow = TryAddShowing(entry);
+            if(beShow)
+                _consoleLogTree.AddLogData(entry);
+        }
+        _consoleLogTree.EndAddAllLogData();
     }
 
     private void OnSelecLogChanged(LogEntry logEntry)
@@ -202,5 +265,4 @@ public class AdvancedConsole : EditorWindow
         else
             _stackTree.SetStackTrack(logEntry);
     }
-
 }
