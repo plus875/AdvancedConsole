@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class LogEntry : ScriptableObject
+public class LogEntry
 {
+    [SerializeField]
+    public int IntId;
     [SerializeField]
     public LogType LogType;
     [SerializeField]
@@ -23,11 +25,11 @@ public class LogEntry : ScriptableObject
             switch (LogType)
             {
                 case LogType.Error:
-                    return AdvancedConsole.Error;
+                    return AdvancedConsole.Instance.Error;
                 case LogType.Warning:
-                    return AdvancedConsole.Warn;
+                    return AdvancedConsole.Instance.Warn;
                 default:
-                    return AdvancedConsole.Log;
+                    return AdvancedConsole.Instance.Log;
             }
         }
     }

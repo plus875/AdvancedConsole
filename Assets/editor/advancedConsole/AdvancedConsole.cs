@@ -13,24 +13,27 @@ public class AdvancedConsole : EditorWindow
         EditorWindow.GetWindow<AdvancedConsole>();
     }
 
-    public static Texture2D Log;
-    public static Texture2D Warn;
-    public static Texture2D Error;
+    public Texture2D Log;
+    public Texture2D Warn;
+    public Texture2D Error;
 
+    public static AdvancedConsole Instance;
+
+    public int IncId;
+    public List<LogEntry> _showingEntries = new List<LogEntry>();
     private List<LogEntry> _entries = new List<LogEntry>();
-    private List<LogEntry> _showingEntries = new List<LogEntry>();
+
     private TreeViewState _treeViewState = new TreeViewState();
-    private ConsoleLogTree _consoleLogTree;
-
     private TreeViewState _stackTreeViewState = new TreeViewState();
-    private StackTrackTree _stackTree;
 
+    private ConsoleLogTree _consoleLogTree;
+    private StackTrackTree _stackTree;
     private SearchField _searchField;
 
     private const int pading = 2;
+    private bool _inited;
     private bool _dirty;
     private string _searchString;
-    private int _id;
     private Rect _splitterRect;
     private float verticalSplitterPercent = 0.6f;
     private float topTreeHeight;
@@ -66,19 +69,18 @@ public class AdvancedConsole : EditorWindow
     // ReSharper disable once UnusedMember.Local
     void OnEnable()
     {
+        Instance = this;
+
         Application.logMessageReceivedThreaded += OnLogging;
 
-        if (_consoleLogTree == null)
+        if (!_inited)
         {
             Log = EditorGUIUtility.Load("log.png") as Texture2D;
             Warn = EditorGUIUtility.Load("warn.png") as Texture2D;
             Error = EditorGUIUtility.Load("error.png") as Texture2D;
-
-            _consoleLogTree = new ConsoleLogTree(_treeViewState, true, 22f);
-            _consoleLogTree.OnSelectionChanged += OnSelecLogChanged;
-            _stackTree = new StackTrackTree(_stackTreeViewState, false, 18f);
-
+            
             _searchField = new SearchField();
+            InitLogTree();
         }
 
         viewRect = position;
@@ -88,12 +90,21 @@ public class AdvancedConsole : EditorWindow
         bottomTreeHeight = viewRect.height - topTreeHeight - _splitterRect.height;
 
         RefreshShowingEntry();
+        _inited = true;
+    }
+
+    private void InitLogTree()
+    {
+        _stackTree = new StackTrackTree(_stackTreeViewState, false, 18f);
+
+        _consoleLogTree = new ConsoleLogTree(_treeViewState, true, 22f);
+        _consoleLogTree.OnSelectionChanged += OnSelectLogChanged;
     }
 
     void OnDisable()
     {
         Application.logMessageReceivedThreaded -= OnLogging;
-
+        _inited = false;
         //Debug.LogError("OnDisable:" + _entries.Count);
         //WriteFile();
     }
@@ -195,10 +206,11 @@ public class AdvancedConsole : EditorWindow
 
     private void OnLogging(string condition, string stackTrace, LogType type)
     {
-        LogEntry entry = CreateInstance<LogEntry>();
+        LogEntry entry = new LogEntry();
         entry.Output = condition;
         entry.StackTrace = stackTrace;
         entry.LogType = type;
+        entry.IntId = ++IncId;
 
         if(TryAddShowing(entry))
             _consoleLogTree.AddLogTreeItem(entry);
@@ -258,7 +270,7 @@ public class AdvancedConsole : EditorWindow
         _consoleLogTree.EndAddAllLogData();
     }
 
-    private void OnSelecLogChanged(LogEntry logEntry)
+    private void OnSelectLogChanged(LogEntry logEntry)
     {
         if (logEntry == null)
             _stackTree.ClearStackTrack();

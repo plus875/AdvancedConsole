@@ -5,20 +5,21 @@ using UnityEngine;
 
 public sealed class ConsoleLogTreeItem : TreeViewItem
 {
+    public int intId;
+
     public string fullAssetName;
 
-    public LogEntry LogEntry
-    {
-        get;
-        private set;
-    }
+    [SerializeField]
+    public LogEntry LogEntry;
 
-    public ConsoleLogTreeItem(int id, int depth, string displayName) : base(id, depth, displayName)
-    {
-    }
+    //public ConsoleLogTreeItem(int id, int depth, string displayName) : base(id, depth, displayName)
+    //{
+    //    intId = id;
+    //}
 
     public ConsoleLogTreeItem(int id, int depth, LogEntry logEntry) : base(id, depth)
     {
+        intId = id;
         LogEntry = logEntry;
         displayName = logEntry.Output;
     }

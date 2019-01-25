@@ -7,26 +7,43 @@ using Object = UnityEngine.Object;
 public class ConsoleLogTree : TreeView
 {
     public event System.Action<LogEntry> OnSelectionChanged;
-    private readonly TreeViewItem _rootTreeItem = new TreeViewItem(0, -1, "root");
-    private int _id = 3;
+    private List<TreeViewItem> _treeViewItems = new List<TreeViewItem>();
+    private TreeViewItem _rootTreeItem;
     protected override TreeViewItem BuildRoot()
     {
+        //Debug.LogWarning("build");
+        _rootTreeItem = new TreeViewItem(0, -1, "root");
+        _rootTreeItem.children = new List<TreeViewItem>(100);
         return _rootTreeItem;
     }
+
+    protected override IList<TreeViewItem> BuildRows(TreeViewItem root)
+    {
+        _treeViewItems.Clear();
+
+        var showingList = AdvancedConsole.Instance._showingEntries;
+        for (var i = 0; i < showingList.Count; i++)
+        {
+            var logEntry = showingList[i];
+            ConsoleLogTreeItem item = new ConsoleLogTreeItem(logEntry.IntId, 0, logEntry);
+            item.icon = logEntry.Icon;
+            _treeViewItems.Add(item);
+        }
+        
+        // We still need to setup the child parent information for the rows since this 
+        // information is used by the TreeView internal logic (navigation, dragging etc)
+        SetupParentsAndChildrenFromDepths(root, _treeViewItems);
+
+        return _treeViewItems;
+    }
+
 
     public ConsoleLogTree(TreeViewState state, bool showBgColor, float itemHeight) : base(state)
     {
         showBorder = true;
         showAlternatingRowBackgrounds = showBgColor;
         rowHeight = itemHeight;
-
-        ConsoleLogTreeItem test1 = new ConsoleLogTreeItem(1, 0, "child1");
-        _rootTreeItem.AddChild(test1);
-
-        ConsoleLogTreeItem test2 = new ConsoleLogTreeItem(2, 0, "child2");
-        _rootTreeItem.AddChild(test2);
-        ConsoleLogTreeItem test3 = new ConsoleLogTreeItem(3, 1, "child3");
-        _rootTreeItem.AddChild(test3);
+        
         Reload();
     }
 
@@ -75,8 +92,7 @@ public class ConsoleLogTree : TreeView
 
     public void AddLogData(LogEntry entry)
     {
-        _id++;
-        ConsoleLogTreeItem item = new ConsoleLogTreeItem(_id, 0, entry);
+        ConsoleLogTreeItem item = new ConsoleLogTreeItem(entry.IntId, 0, entry);
         item.icon = entry.Icon;
         _rootTreeItem.AddChild(item);
     }
