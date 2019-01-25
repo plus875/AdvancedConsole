@@ -21,13 +21,25 @@ public class ConsoleLogTree : TreeView
     {
         _treeViewItems.Clear();
 
+        bool inSearch = !string.IsNullOrEmpty(searchString);
+        string matchStr = inSearch ? searchString.ToLower() : "";
         var showingList = AdvancedConsole.Instance._showingEntries;
         for (var i = 0; i < showingList.Count; i++)
         {
             var logEntry = showingList[i];
-            ConsoleLogTreeItem item = new ConsoleLogTreeItem(logEntry.IntId, 0, logEntry);
-            item.icon = logEntry.Icon;
-            _treeViewItems.Add(item);
+
+            bool visible = true;
+            if (inSearch)
+            {
+                visible = logEntry.Output.ToLower().Contains(matchStr);
+            }
+
+            if (visible)
+            {
+                ConsoleLogTreeItem item = new ConsoleLogTreeItem(logEntry.IntId, 0, logEntry);
+                item.icon = logEntry.Icon;
+                _treeViewItems.Add(item);
+            }
         }
         
         // We still need to setup the child parent information for the rows since this 
@@ -105,11 +117,11 @@ public class ConsoleLogTree : TreeView
 
     public void ScrollToLatest()
     {
-        var scorllPos = state.scrollPos;
-        scorllPos.y = Mathf.Max(0, GetRows().Count * rowHeight - treeViewRect.height / rowHeight);
-        state.scrollPos = scorllPos;
+        var scrollPos = state.scrollPos;
+        scrollPos.y = Mathf.Max(0, GetRows().Count * rowHeight - treeViewRect.height / rowHeight);
+        state.scrollPos = scrollPos;
     }
-
+    
     public void Clear()
     {
         rootItem.children.Clear();

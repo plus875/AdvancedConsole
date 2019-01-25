@@ -16,7 +16,7 @@ public class StackTrackTree : TreeView
         showAlternatingRowBackgrounds = showBgColor;
         rowHeight = itemHeight;
 
-        StackTrackItem test1 = new StackTrackItem(1, 0, "child1");
+        StackTrackItem test1 = new StackTrackItem(1, 0, "");
         _rootTreeItem.AddChild(test1);
         Reload();
     }
@@ -61,6 +61,5 @@ public class StackTrackTree : TreeView
         }
 
         Reload();
-        //Repaint();
     }
 }

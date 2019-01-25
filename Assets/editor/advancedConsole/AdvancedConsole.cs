@@ -42,9 +42,9 @@ public class AdvancedConsole : EditorWindow
     private Rect viewRect;
     private float searchBarHeight = 16f;
 
-    private bool _showLog;
-    private bool _showWarnings;
-    private bool _showErrors;
+    private bool _showLog = true;
+    private bool _showWarnings = true;
+    private bool _showErrors = true;
 
     private int _logCount;
     private int _warnCount;
